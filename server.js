@@ -3,8 +3,8 @@ const cors = require('cors');
 const paypal = require('@paypal/checkout-server-sdk'); // SDK PayPal Commerce Platform
 
 // Configurez votre client PayPal
-const clientId = 'AbVATpiMoWmpilf5PysGiBVJ3hIlCBU06sBdT5Qta3bvXIH32vRFSBX5y9BISTBJKd9XlT9OE4RK44Jb';
-const clientSecret = 'EBpARSk8phoDl94Mua75G360yzIQQasS0xzO4HOpvymq4JDISG7gJBPnWFL-9w3D3mZbgNgLfnnjqIoU';
+const clientId = 'Aa2MHZVYjYC82ZX3PshKnLH6A_WWd5D0dOGi7t3z7_7feitsPwtxeFNgvUgzpQnTGij8AK8dbx4AWF9-';
+const clientSecret = 'ELvTKY74aJwEj1lf_rO58qDp-E_Af6Td9hpGrF7f0iFVXytc4KsyMyfMb1G7ZoQd97L1FY7-nXbRu_T6';
 const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret); // Utilisez ProductionEnvironment pour la production
 const client = new paypal.core.PayPalHttpClient(environment);
 
