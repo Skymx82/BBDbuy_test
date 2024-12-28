@@ -12,19 +12,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Route pour créer un paiement
 app.post('/create-payment', async (req, res) => {
     const { total } = req.body;
 
     const request = new paypal.orders.OrdersCreateRequest();
     request.requestBody({
-        intent: 'CAPTURE', // Pour capturer immédiatement le paiement
-        purchase_units: [{
-            amount: {
-                currency_code: 'USD',
-                value: total.toString(),
+        intent: 'CAPTURE',
+        purchase_units: [
+            {
+                amount: {
+                    currency_code: 'USD',
+                    value: total.toString(),
+                },
             },
-        }],
+        ],
         application_context: {
             return_url: 'http://localhost:3000/success',
             cancel_url: 'http://localhost:3000/cancel',
@@ -33,13 +34,24 @@ app.post('/create-payment', async (req, res) => {
 
     try {
         const order = await client.execute(request);
-        res.json({ approval_url: order.links.find(link => link.rel === 'approve').href });
+        console.log(order.result); // Inspectez le contenu du résultat pour confirmation
+
+        // Vérifiez et extrayez les liens
+        if (order.result.links && Array.isArray(order.result.links)) {
+            const approvalLink = order.result.links.find(link => link.rel === 'approve');
+            if (approvalLink) {
+                res.json({ approval_url: approvalLink.href });
+            } else {
+                res.status(500).send("Lien d'approbation non trouvé dans la réponse PayPal.");
+            }
+        } else {
+            res.status(500).send("Structure des liens incorrecte dans la réponse PayPal.");
+        }
     } catch (error) {
-        console.error(error);
-        res.status(500).send(error);
+        console.error("Erreur PayPal:", error);
+        res.status(500).send("Erreur lors de la création de la commande PayPal.");
     }
 });
-
 // Gestion des redirections
 app.get('/success', async (req, res) => {
     const { token } = req.query;
