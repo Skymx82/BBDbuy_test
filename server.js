@@ -27,8 +27,8 @@ app.post('/create-payment', async (req, res) => {
             },
         ],
         application_context: {
-            return_url: 'http://localhost:3000/success',
-            cancel_url: 'http://localhost:3000/cancel',
+            return_url: 'https://bbdbuy.netlify.app//success',
+            cancel_url: 'https://bbdbuy.netlify.app//cancel',
         },
     });
 
@@ -58,10 +58,10 @@ app.get('/success', async (req, res) => {
 
     try {
         const capture = await client.execute(request);
-        res.redirect('http://localhost:8081/success'); // URL de succès
+        res.redirect('https://bbdbuy.netlify.app//success'); // URL de succès
     } catch (error) {
         console.error(error);
-        res.redirect('http://localhost:8081/failure'); // URL d'échec
+        res.redirect('https://bbdbuy.netlify.app//failure'); // URL d'échec
     }
 });
 
