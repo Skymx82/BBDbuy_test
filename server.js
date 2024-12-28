@@ -34,7 +34,6 @@ app.post('/create-payment', async (req, res) => {
 
     try {
         const order = await client.execute(request);
-        console.log(order.result); // Inspectez le contenu du résultat pour confirmation
 
         // Vérifiez et extrayez les liens
         if (order.result.links && Array.isArray(order.result.links)) {
