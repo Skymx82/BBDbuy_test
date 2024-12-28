@@ -1,64 +1,62 @@
 const express = require('express');
 const cors = require('cors');
-const paypal = require('paypal-rest-sdk');
+const paypal = require('@paypal/checkout-server-sdk'); // SDK PayPal Commerce Platform
 
-paypal.configure({
-  mode: 'sandbox',
-  client_id: 'AbVATpiMoWmpilf5PysGiBVJ3hIlCBU06sBdT5Qta3bvXIH32vRFSBX5y9BISTBJKd9XlT9OE4RK44Jb',
-  client_secret: 'EBpARSk8phoDl94Mua75G360yzIQQasS0xzO4HOpvymq4JDISG7gJBPnWFL-9w3D3mZbgNgLfnnjqIoU',
-});
+// Configurez votre client PayPal
+const clientId = 'AbVATpiMoWmpilf5PysGiBVJ3hIlCBU06sBdT5Qta3bvXIH32vRFSBX5y9BISTBJKd9XlT9OE4RK44Jb';
+const clientSecret = 'EBpARSk8phoDl94Mua75G360yzIQQasS0xzO4HOpvymq4JDISG7gJBPnWFL-9w3D3mZbgNgLfnnjqIoU';
+const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret); // Utilisez ProductionEnvironment pour la production
+const client = new paypal.core.PayPalHttpClient(environment);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Route pour créer un paiement
 app.post('/create-payment', async (req, res) => {
     const { total } = req.body;
-  
-    const create_payment_json = {
-      intent: 'sale',
-      payer: { payment_method: 'paypal' },
-      transactions: [
-        {
-          amount: { currency: 'USD', total: total.toString() },
-          description: 'Paiement via BBDBuy',
+
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.requestBody({
+        intent: 'CAPTURE', // Pour capturer immédiatement le paiement
+        purchase_units: [{
+            amount: {
+                currency_code: 'USD',
+                value: total.toString(),
+            },
+        }],
+        application_context: {
+            return_url: 'http://localhost:3000/success',
+            cancel_url: 'http://localhost:3000/cancel',
         },
-      ],
-      redirect_urls: {
-        return_url: 'http://localhost:3000/success',
-        cancel_url: 'http://localhost:3000/cancel',
-      },
-    };
-  
-    paypal.payment.create(create_payment_json, (error, payment) => {
-      if (error) {
+    });
+
+    try {
+        const order = await client.execute(request);
+        res.json({ approval_url: order.links.find(link => link.rel === 'approve').href });
+    } catch (error) {
         console.error(error);
         res.status(500).send(error);
-      } else {
-        res.json({ approval_url: payment.links[1].href });
-      }
-    });
-  });
-  
-  // Gestion des redirections
-  app.get('/success', (req, res) => {
-    const { paymentId, PayerID } = req.query;
-  
-    paypal.payment.execute(paymentId, { payer_id: PayerID }, (error, payment) => {
-      if (error) {
+    }
+});
+
+// Gestion des redirections
+app.get('/success', async (req, res) => {
+    const { token } = req.query;
+    const request = new paypal.orders.OrdersCaptureRequest(token);
+
+    try {
+        const capture = await client.execute(request);
+        res.redirect('http://localhost:8081/success'); // URL de succès
+    } catch (error) {
         console.error(error);
-        return res.redirect('http://localhost:8081/failure'); // URL pour la WebView échec
-      }
-  
-      console.log('Paiement réussi :', payment);
-      res.redirect('http://localhost:8081/success'); // URL pour la WebView succès
-    });
+        res.redirect('http://localhost:8081/failure'); // URL d'échec
+    }
 });
-  
+
 app.get('/cancel', (req, res) => {
-    res.redirect('http://localhost:8081/failure'); // URL pour la WebView échec
+    res.redirect('http://localhost:8081/failure'); // URL d'échec
 });
-  
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`Serveur backend lancé sur http://localhost:${PORT}`));
