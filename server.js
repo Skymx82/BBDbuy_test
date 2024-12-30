@@ -56,15 +56,15 @@ app.get('/success', async (req, res) => {
 
     try {
         await client.execute(request);
-        res.redirect('${baseUrl}/success');
+        res.redirect('https://bbdbuy.netlify.app/success');
     } catch (error) {
         console.error("Erreur de capture PayPal:", error);
-        res.redirect('${baseUrl}/cancel');
+        res.redirect('https://bbdbuy.netlify.app/cancel');
     }
 });
 
 app.get('/cancel', (req, res) => {
-    res.redirect('${baseUrl}/cancel');
+    res.redirect('https://bbdbuy.netlify.app/cancel');
 });
 
 const PORT = process.env.PORT || 3000;
