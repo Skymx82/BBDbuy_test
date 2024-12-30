@@ -10,7 +10,7 @@ const client = new paypal.core.PayPalHttpClient(environment);
 const app = express();
 app.use(cors({
     origin: ['https://bbdbuy.netlify.app', 'http://localhost:8081'], // Autoriser votre domaine frontend
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],
 }));
 app.use(express.json());
