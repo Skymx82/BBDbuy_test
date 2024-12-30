@@ -1,19 +1,22 @@
 const express = require('express');
 const cors = require('cors');
-const paypal = require('@paypal/checkout-server-sdk'); // SDK PayPal Commerce Platform
+const paypal = require('@paypal/checkout-server-sdk');
 
-// Configurez votre client PayPal
 const clientId = 'AQZB7nCdzF6z7Feq3eq5iDf2QO0pnyvcu-Fyj-r_qAuGFpUhTRfWDwfiywHCrX1UkErDA9kaxr0HoDzq';
 const clientSecret = 'EHny0U5tD-2VdP71k3sVPtELuw3fSPajpMOqu5Swk6n42wHhCriK5bdASPvu3lRLbhJ5GoUl7oQV4MRJ';
-const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret); // Utilisez ProductionEnvironment pour la production
+const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
 const client = new paypal.core.PayPalHttpClient(environment);
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: ['https://bbdbuy.netlify.app'], // Autoriser votre domaine frontend
+    methods: ['GET', 'POST'],
+}));
 app.use(express.json());
 
 app.post('/create-payment', async (req, res) => {
     const { total } = req.body;
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
 
     const request = new paypal.orders.OrdersCreateRequest();
     request.requestBody({
@@ -27,47 +30,41 @@ app.post('/create-payment', async (req, res) => {
             },
         ],
         application_context: {
-            return_url: 'https://bbdbuy.netlify.app/success',
-            cancel_url: 'https://bbdbuy.netlify.app/cancel',
+            return_url: `${baseUrl}/success`,
+            cancel_url: `${baseUrl}/cancel`,
         },
     });
 
     try {
         const order = await client.execute(request);
-
-        // Vérifiez et extrayez les liens
-        if (order.result.links && Array.isArray(order.result.links)) {
-            const approvalLink = order.result.links.find(link => link.rel === 'approve');
-            if (approvalLink) {
-                res.json({ approval_url: approvalLink.href });
-            } else {
-                res.status(500).send("Lien d'approbation non trouvé dans la réponse PayPal.");
-            }
+        const approvalLink = order.result.links.find(link => link.rel === 'approve');
+        if (approvalLink) {
+            res.json({ approval_url: approvalLink.href });
         } else {
-            res.status(500).send("Structure des liens incorrecte dans la réponse PayPal.");
+            res.status(500).send("Lien d'approbation non trouvé.");
         }
     } catch (error) {
         console.error("Erreur PayPal:", error);
-        res.status(500).send("Erreur lors de la création de la commande PayPal.");
+        res.status(500).send("Erreur lors de la création de la commande.");
     }
 });
-// Gestion des redirections
+
 app.get('/success', async (req, res) => {
     const { token } = req.query;
     const request = new paypal.orders.OrdersCaptureRequest(token);
 
     try {
-        const capture = await client.execute(request);
-        res.redirect('https://bbdbuy.netlify.app/success'); // URL de succès
+        await client.execute(request);
+        res.redirect('https://bbdbuy.netlify.app/success');
     } catch (error) {
-        console.error(error);
-        res.redirect('https://bbdbuy.netlify.app//failure'); // URL d'échec
+        console.error("Erreur de capture PayPal:", error);
+        res.redirect('https://bbdbuy.netlify.app/failure');
     }
 });
 
 app.get('/cancel', (req, res) => {
-    res.redirect('http://localhost:8081/failure'); // URL d'échec
+    res.redirect('https://bbdbuy.netlify.app/failure');
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Serveur backend lancé sur http://localhost:${PORT}`));
